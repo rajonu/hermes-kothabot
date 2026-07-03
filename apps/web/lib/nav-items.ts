@@ -46,6 +46,11 @@ export interface NavItem {
   bookingIcon?: LucideIcon;
   /** If set, only shown when shop category matches. */
   onlyCategory?: string;
+  /**
+   * If set, only shown + accessible when the corresponding module is enabled.
+   * The module key must exist in lib/modules.ts.
+   */
+  onlyModule?: string;
 }
 
 // ── BUSINESS modules: always top-level on desktop, primary tabs on mobile ──
@@ -60,7 +65,7 @@ export const BUSINESS_NAV: NavItem[] = [
   { href: '/products',    label: 'Products',    icon: Package,        labelKey: 'productsLabel',  countKey: 'product',  emoji: '📦'   },
   { href: '/analytics',   label: 'Analytics',   icon: BarChart2,                                                         emoji: '📊'   },
   { href: '/transcripts', label: 'Transcripts', icon: MessageSquare,                                                     emoji: '💬'   },
-  { href: '/livechat',    label: 'Live Chat',   icon: MessagesSquare,                                                    emoji: '💭'   },
+  { href: '/livechat',    label: 'Live Chat',   icon: MessagesSquare,   onlyModule: 'livechat',                          emoji: '💭'   },
 ];
 
 // ── PLATFORM & TOOLS: collapsed on desktop, "More" sheet on mobile ──
@@ -70,9 +75,9 @@ export const BUSINESS_NAV: NavItem[] = [
 export const PLATFORM_NAV: NavItem[] = [
   { href: '/billing',                       label: 'Billing',          icon: CreditCard,   emoji: '💳' },
   { href: '/integrations',                  label: 'Integrations',     icon: Link2,        emoji: '🔗' },
-  { href: '/integrations#api-access',       label: 'API Access',       icon: Code2,        emoji: '🧩' },
-  { href: '/integrations#google-calendar',  label: 'Google Calendar',  icon: CalendarDays, emoji: '📅' },
-  { href: '/voice-links',                   label: 'Voice Links',      icon: Radio,        emoji: '📡' },
+  { href: '/integrations#api-access',       label: 'API Access',       icon: Code2,        emoji: '🧩', onlyModule: 'api_access' },
+  { href: '/integrations#google-calendar',  label: 'Google Calendar',  icon: CalendarDays, emoji: '📅', onlyModule: 'calendar' },
+  { href: '/voice-links',                   label: 'Voice Links',      icon: Radio,        emoji: '📡', onlyModule: 'voice_links' },
   { href: '/training',                      label: 'AI Training',      icon: Brain,        emoji: '🧠' },
   { href: '/settings/backup',               label: 'Backup & Restore', icon: Archive,      emoji: '🗄️' },
   { href: '/support',                       label: 'Support',          icon: LifeBuoy,     emoji: '🎧' },

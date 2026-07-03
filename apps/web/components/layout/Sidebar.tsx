@@ -7,6 +7,7 @@ import Image from "next/image";
 import { ChevronDown, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_VERSION, BUILD_NUMBER } from "@/lib/version";
+import { isModuleEnabled } from "@/lib/modules";
 import type { CategoryNav } from "@/lib/category-nav";
 import { BUSINESS_NAV, PLATFORM_NAV, isNavItemActive, type NavItem } from "@/lib/nav-items";
 
@@ -19,6 +20,7 @@ interface SidebarProps {
   productCount?:  number;
   orderCount?:    number;
   customerCount?: number;
+  modules?:       string[] | null;
 }
 
 export function Sidebar({
@@ -30,6 +32,7 @@ export function Sidebar({
   productCount  = 0,
   orderCount    = 0,
   customerCount = 0,
+  modules       = null,
 }: SidebarProps) {
   const pathname = usePathname();
 
@@ -50,10 +53,17 @@ export function Sidebar({
   // Calendar icon for appointment-style categories (clinic/salon/services).
   const isBookingCategory = catNav?.ordersLabel === 'Appointments' || catNav?.ordersLabel === 'Bookings';
 
+  const shopMods = modules; // null-safe alias for closure
+
   const visibleBusiness = BUSINESS_NAV.filter(
-    item => !item.onlyCategory || item.onlyCategory === shopCategory
+    item =>
+      (!item.onlyCategory || item.onlyCategory === shopCategory) &&
+      (!item.onlyModule || !shopMods || shopMods.includes(item.onlyModule))
   );
-  const allNavItems = [...BUSINESS_NAV, ...PLATFORM_NAV];
+  const visiblePlatform = PLATFORM_NAV.filter(
+    item => !item.onlyModule || !shopMods || shopMods.includes(item.onlyModule)
+  );
+  const allNavItems = [...visibleBusiness, ...visiblePlatform];
   const platformIsActive = PLATFORM_NAV.some(item => isNavItemActive(item, pathname, allNavItems));
   const [platformOpen, setPlatformOpen] = useState(platformIsActive);
 
@@ -164,7 +174,7 @@ export function Sidebar({
           </button>
           {platformOpen && (
             <div className="space-y-0.5 mt-1">
-              {PLATFORM_NAV.map(renderItem)}
+              {visiblePlatform.map(renderItem)}
             </div>
           )}
         </div>

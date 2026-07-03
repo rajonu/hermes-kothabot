@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { signOut } from '@/modules/auth/actions';
 import type { CategoryNav } from '@/lib/category-nav';
 import { BUSINESS_NAV, PLATFORM_NAV, isNavItemActive, type NavItem } from '@/lib/nav-items';
+import { isModuleEnabled } from '@/lib/modules';
 
 interface BottomNavProps {
   catNav?:        CategoryNav;
@@ -77,9 +78,14 @@ export function BottomNav({
       default:         return null;
     }
   };
+  const shopMods = modules; // null-safe alias for closure
 
   // Primary tabs derived from BUSINESS_NAV in declared order; Analytics replaces Settings.
-  const PRIMARY_NAV = BUSINESS_NAV.filter(i => PRIMARY_HREFS.has(i.href)).map(item => ({
+  // Filtered by module and category.
+  const PRIMARY_NAV = BUSINESS_NAV.filter(i =>
+    PRIMARY_HREFS.has(i.href) &&
+    (!i.onlyModule || !shopMods || shopMods.includes(i.onlyModule))
+  ).map(item => ({
     href: item.href,
     label: labelFor(item),
     Icon: iconFor(item),
@@ -87,10 +93,41 @@ export function BottomNav({
   }));
 
   // Everything else falls into "More": leftover business items first, then platform.
+  const shopMods = modules; // null-safe alias for closure
+
+  // Primary tabs derived from BUSINESS_NAV in declared order; Analytics replaces Settings.
+  // Filtered by module and category.
+  const PRIMARY_NAV = BUSINESS_NAV.filter(i =>
+    PRIMARY_HREFS.has(i.href) &&
+    (!i.onlyModule || !shopMods || shopMods.includes(i.onlyModule))
+  ).map(item => ({
+    href: item.href,
+    label: labelFor(item),
+    Icon: iconFor(item),
+    count: countFor(item),
+  }));
+
+  // Everything else falls into "More": leftover business items first, then platform.
+  const shopMods = modules; // null-safe alias for closure
+
+  // Primary tabs derived from BUSINESS_NAV in declared order; Analytics replaces Settings.
+  // Filtered by module and category.
+  const PRIMARY_NAV = BUSINESS_NAV.filter(i =>
+    PRIMARY_HREFS.has(i.href) &&
+    (!i.onlyModule || !shopMods || shopMods.includes(i.onlyModule))
+  ).map(item => ({
+    href: item.href,
+    label: labelFor(item),
+    Icon: iconFor(item),
+    count: countFor(item),
+  }));
+
+  // Everything else falls into "More": leftover business items first, then platform.
+  // Filtered by module and category.
   const MORE_ITEMS: Array<{ href: string; label: string; emoji: string; count: number | null; external?: boolean }> =
     [
-      ...BUSINESS_NAV.filter(i => !PRIMARY_HREFS.has(i.href)),
-      ...PLATFORM_NAV,
+      ...BUSINESS_NAV.filter(i => !PRIMARY_HREFS.has(i.href) && (!i.onlyModule || !shopMods || shopMods.includes(i.onlyModule))),
+      ...PLATFORM_NAV.filter(i => !i.onlyModule || !shopMods || shopMods.includes(i.onlyModule)),
     ].map(item => ({
       href: item.href,
       label: labelFor(item),

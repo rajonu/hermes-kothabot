@@ -23,7 +23,7 @@ export default async function DashboardLayout({
 
   const { data: shopRaw } = await supabase
     .from("shops")
-    .select("id, name, category, ai_config, widget_config")
+    .select("id, name, category, ai_config, widget_config, modules")
     .eq("owner_id", user.id)
     .single();
   const shop = shopRaw as unknown as Shop | null;
@@ -83,6 +83,7 @@ export default async function DashboardLayout({
         productCount={productCount ?? 0}
         orderCount={orderCount ?? 0}
         customerCount={customerCount ?? 0}
+        modules={(shop as any).modules ?? null}
       />
 
       {/* Right column: topbar + scrollable content */}
@@ -107,6 +108,7 @@ export default async function DashboardLayout({
         daysLeft={daysLeft}
         isActiveSub={isActiveSub}
         notificationCount={notificationCount}
+        modules={(shop as any).modules ?? null}
       />
 
       {/* Floating voice widget — always available in dashboard */}
