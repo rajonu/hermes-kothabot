@@ -54,6 +54,7 @@ export interface Database {
           widget_config: Json;
           ai_config: Json;
           onboarding_done: boolean;
+          business_profile?: string | null; // New column for compact business profile
           created_at: string;
           updated_at: string;
         };
@@ -66,6 +67,7 @@ export interface Database {
           widget_config?: Json;
           ai_config?: Json;
           onboarding_done?: boolean;
+          business_profile?: string | null; // New column for compact business profile
           created_at?: string;
           updated_at?: string;
         };
