@@ -2,21 +2,21 @@ import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/common/PageHeader';
 import { getDocsCategory } from '@/lib/category-nav';
-import { EmbedConfigurator } from './EmbedConfigurator';
 import { ApiAccessPanel } from './ApiAccessPanel';
 import { GoogleCalendarPanel } from './GoogleCalendarPanel';
-import { TelephonyPanel } from './TelephonyPanel';
 import { LeadCaptureToggle } from './LeadCaptureToggle';
 import { FacebookPanel } from './FacebookPanel';
 import { WhatsAppPanel } from './WhatsAppPanel';
+import { EmbedConfigurator } from './EmbedConfigurator';
 import { CollapsibleSection } from './CollapsibleSection';
 
+interface IntegrationsPageProps {
+  searchParams: Promise<{ cal?: string; email?: string; reason?: string }>;
+}
 
 export default async function IntegrationsPage({
   searchParams,
-}: {
-  searchParams: Promise<{ cal?: string; email?: string; reason?: string }>;
-}) {
+}: IntegrationsPageProps) {
   const sp = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -27,6 +27,7 @@ export default async function IntegrationsPage({
   if (error) console.error('[integrations] shop query error:', error);
   if (!shopRaw) return <p className="p-6 text-gray-400">Could not load shop.</p>;
   const shop = shopRaw as any;
+
   const hdrs = await headers();
   const host = hdrs.get('host') ?? 'localhost:3001';
   const proto = host.startsWith('localhost') ? 'http' : 'https';
@@ -36,8 +37,6 @@ export default async function IntegrationsPage({
 
   const quickNav = [
     isBookingOrAppointment && { id: 'google-calendar', label: 'Google Calendar' },
-    shop.ai_config?.voip_enabled && { id: 'sip-telephony', label: 'SIP Telephony' },
-    shop.ai_config?.api_access_enabled && { id: 'api-access', label: 'API Access' },
     { id: 'facebook-messenger', label: 'Messenger' },
     { id: 'whatsapp', label: 'WhatsApp' },
     { id: 'lead-capture', label: 'Lead Capture' },
@@ -88,37 +87,6 @@ export default async function IntegrationsPage({
           description="Automatically create calendar events for every appointment, booking, and reservation."
         >
           <GoogleCalendarPanel />
-        </CollapsibleSection>
-      )}
-
-      {/* Telephony (SIP Trunk) — gated by god admin */}
-      {shop.ai_config?.voip_enabled && (
-        <CollapsibleSection
-          id="sip-telephony"
-          title="SIP Telephony Trunk"
-          badge="VOICE ASSISTANT"
-          badgeColor="bg-indigo-700"
-          dotColor="bg-indigo-400"
-          description="Connect your telephone line so customers can call and talk directly to your voice assistant."
-        >
-          <TelephonyPanel
-            shopId={shop.id}
-            initialTelephony={shop.ai_config?.telephony ?? null}
-          />
-        </CollapsibleSection>
-      )}
-
-      {/* API Access — gated by god admin */}
-      {shop.ai_config?.api_access_enabled && (
-        <CollapsibleSection
-          id="api-access"
-          title="API Access"
-          badge="DEVELOPER"
-          badgeColor="bg-blue-700"
-          dotColor="bg-blue-400"
-          description="Connect WhatsApp, Messenger, Telegram, Zapier, Make.com, CRMs, and custom apps to KothaBot."
-        >
-          <ApiAccessPanel />
         </CollapsibleSection>
       )}
 
