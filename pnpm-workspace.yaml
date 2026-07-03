@@ -1,0 +1,5 @@
+packages:
+  - "apps/web"
+  - "packages/*"
+  # voice-server is excluded — it deploys to Railway with its own npm install
+  # run: cd apps/voice-server && npm install && npm run dev  (standalone)

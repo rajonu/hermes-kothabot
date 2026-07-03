@@ -1,0 +1,28 @@
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Build context is /apps/web (Railway service rootDirectory).
+# apps/web is standalone — no workspace deps — so we can install + build flat.
+COPY package.json package-lock.json* ./
+RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+
+COPY . .
+
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG NEXT_PUBLIC_APP_URL
+ARG NEXT_PUBLIC_VOICE_SERVER_URL
+ARG NEXT_PUBLIC_GEMINI_API_KEY
+
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_VOICE_SERVER_URL=$NEXT_PUBLIC_VOICE_SERVER_URL
+ENV NEXT_PUBLIC_GEMINI_API_KEY=$NEXT_PUBLIC_GEMINI_API_KEY
+
+RUN npm run build
+
+EXPOSE 3000
+
+CMD ["npm", "start"]

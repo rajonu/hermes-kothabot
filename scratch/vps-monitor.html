@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>KothaBot VPS Monitor</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:#0b1117; --panel:#151c25; --panel-2:#1c2531; --border:#243042;
+      --text:#e6edf3; --mute:#7d8a9c; --accent:#10b981; --warn:#f59e0b; --danger:#ef4444;
+      --blue:#3b82f6; --purple:#a855f7;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+      background:var(--bg); color:var(--text); padding:20px;
+    }
+    h1 { font-size:18px; margin:0 0 4px; }
+    .subtitle { color:var(--mute); font-size:12px; margin-bottom:18px; }
+    .grid { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); }
+    .card {
+      background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px;
+    }
+    .card h2 { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--mute); margin:0 0 8px; }
+    .big { font-size:28px; font-weight:700; }
+    .sub { font-size:11px; color:var(--mute); margin-top:2px; }
+    .bar { height:6px; background:var(--panel-2); border-radius:3px; overflow:hidden; margin-top:10px; }
+    .bar > div { height:100%; background:var(--accent); transition:width .4s, background .4s; }
+    canvas { display:block; width:100%; }
+    table { width:100%; border-collapse:collapse; font-size:12px; }
+    th, td { padding:6px 8px; border-bottom:1px solid var(--border); text-align:left; }
+    th { color:var(--mute); font-weight:500; font-size:10px; text-transform:uppercase; }
+    .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+    .dot-online  { background:var(--accent); }
+    .dot-stopped { background:var(--danger); }
+    .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
+    .pill { font-size:11px; padding:3px 8px; border-radius:99px; background:var(--panel-2); border:1px solid var(--border); color:var(--mute); }
+    .err { color:var(--danger); padding:8px 12px; background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); border-radius:8px; font-size:12px; margin-bottom:14px; display:none; }
+    .config { background:var(--panel); border:1px dashed var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+    .config input { width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; font-family:monospace; margin-top:4px; }
+    .config label { font-size:11px; color:var(--mute); text-transform:uppercase; letter-spacing:1px; }
+    .config button { margin-top:10px; padding:8px 14px; background:var(--accent); color:#000; border:none; border-radius:6px; font-weight:600; cursor:pointer; }
+    .config button:hover { background:#0ea271; }
+    @media (max-width:600px) { .big { font-size:22px; } body { padding:12px; } }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div>
+      <h1>🖥️ KothaBot VPS Monitor</h1>
+      <div class="subtitle">Live system stats — updated every <span id="interval">5</span>s</div>
+    </div>
+    <div>
+      <span class="pill" id="status-pill">connecting…</span>
+      <span class="pill" id="last-update">—</span>
+    </div>
+  </div>
+
+  <div class="err" id="error"></div>
+
+  <div class="config" id="config-card">
+    <label>API URL (your VPS system-stats endpoint)</label>
+    <input id="cfg-url" placeholder="https://my.kothabot.ai.bd/api/admin/system-stats" />
+    <label style="margin-top:10px;display:block;">Access Token</label>
+    <input id="cfg-token" type="password" placeholder="SYSTEM_STATS_TOKEN value" />
+    <button onclick="saveCfg()">Save &amp; Start</button>
+  </div>
+
+  <div class="grid" id="dashboard" style="display:none;">
+    <div class="card">
+      <h2>CPU</h2>
+      <div class="big"><span id="cpu-pct">—</span>%</div>
+      <div class="sub">load 1/5/15: <span id="load">—</span></div>
+      <div class="bar"><div id="cpu-bar" style="width:0%"></div></div>
+      <canvas id="cpu-chart" height="120" style="margin-top:14px;"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>Memory</h2>
+      <div class="big"><span id="mem-pct">—</span>%</div>
+      <div class="sub"><span id="mem-used">—</span> / <span id="mem-total">—</span> MB</div>
+      <div class="bar"><div id="mem-bar" style="width:0%"></div></div>
+      <canvas id="mem-chart" height="120" style="margin-top:14px;"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>Disk (/ )</h2>
+      <div class="big"><span id="disk-pct">—</span>%</div>
+      <div class="sub"><span id="disk-used">—</span> / <span id="disk-total">—</span> GB</div>
+      <div class="bar"><div id="disk-bar" style="width:0%"></div></div>
+      <div class="sub" style="margin-top:14px;">Free: <span id="disk-free">—</span> GB</div>
+    </div>
+
+    <div class="card">
+      <h2>Network</h2>
+      <div class="big"><span id="net-down">—</span> ↓ / <span id="net-up">—</span> ↑</div>
+      <div class="sub">kB/s — total RX <span id="net-rx-total">—</span> MB · TX <span id="net-tx-total">—</span> MB</div>
+      <canvas id="net-chart" height="120" style="margin-top:14px;"></canvas>
+    </div>
+
+    <div class="card" style="grid-column:1/-1;">
+      <h2>System</h2>
+      <div class="big">Uptime: <span id="uptime">—</span></div>
+      <div class="sub">Server time on last poll: <span id="server-time">—</span></div>
+    </div>
+
+    <div class="card" style="grid-column:1/-1;">
+      <h2>PM2 Processes</h2>
+      <table>
+        <thead><tr><th>Name</th><th>Status</th><th>CPU %</th><th>Memory MB</th><th>Restarts</th><th>Uptime</th></tr></thead>
+        <tbody id="pm2-rows"><tr><td colspan="6" style="color:var(--mute)">no data</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="card" style="grid-column:1/-1;">
+      <h2>Current Deploy</h2>
+      <div class="big" style="font-family:monospace;">
+        <a id="git-link" href="#" target="_blank" rel="noopener" style="color:var(--blue); text-decoration:none;"><span id="git-short">—</span></a>
+        <span id="git-subject" style="font-size:14px; font-weight:400; color:var(--text); margin-left:8px;">—</span>
+      </div>
+      <div class="sub" style="margin-top:4px;">
+        branch <code id="git-branch">—</code> · <span id="git-author">—</span> · <span id="git-date">—</span>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column:1/-1;">
+      <h2>Deployment Log (last 15 commits)</h2>
+      <table>
+        <thead><tr><th>Commit</th><th>When</th><th>Author</th><th>Message</th></tr></thead>
+        <tbody id="git-rows"><tr><td colspan="4" style="color:var(--mute)">no data</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+const POLL_MS = 5000;
+const MAX_POINTS = 60;
+
+function fmt(n, d = 1) { return (Math.round(n * 10 ** d) / 10 ** d).toLocaleString(); }
+function fmtBytes(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1024*1024) return fmt(n/1024) + ' kB';
+  if (n < 1024*1024*1024) return fmt(n/1024/1024) + ' MB';
+  return fmt(n/1024/1024/1024) + ' GB';
+}
+function fmtUptime(s) {
+  const d = Math.floor(s/86400), h = Math.floor((s%86400)/3600), m = Math.floor((s%3600)/60);
+  if (d) return `${d}d ${h}h ${m}m`;
+  if (h) return `${h}h ${m}m`;
+  return `${m}m ${s%60}s`;
+}
+function barColor(pct) {
+  if (pct >= 85) return '#ef4444';
+  if (pct >= 70) return '#f59e0b';
+  return '#10b981';
+}
+
+// ── Config persistence (localStorage) ──────────────────────────────────────
+const cfg = {
+  url:   localStorage.getItem('kb_mon_url')   || '',
+  token: localStorage.getItem('kb_mon_token') || '',
+};
+function saveCfg() {
+  cfg.url   = document.getElementById('cfg-url').value.trim();
+  cfg.token = document.getElementById('cfg-token').value.trim();
+  if (!cfg.url || !cfg.token) { alert('Both URL and token are required.'); return; }
+  localStorage.setItem('kb_mon_url',   cfg.url);
+  localStorage.setItem('kb_mon_token', cfg.token);
+  document.getElementById('config-card').style.display = 'none';
+  document.getElementById('dashboard').style.display   = 'grid';
+  start();
+}
+if (cfg.url && cfg.token) {
+  document.getElementById('config-card').style.display = 'none';
+  document.getElementById('dashboard').style.display   = 'grid';
+} else {
+  document.getElementById('cfg-url').value   = cfg.url;
+  document.getElementById('cfg-token').value = cfg.token;
+}
+
+// ── Charts ─────────────────────────────────────────────────────────────────
+function lineChart(canvasId, label, color) {
+  return new Chart(document.getElementById(canvasId), {
+    type: 'line',
+    data: { labels: [], datasets: [{ label, data: [], borderColor: color, backgroundColor: color + '22', tension: .3, pointRadius: 0, borderWidth: 2, fill: true }] },
+    options: {
+      responsive: true, animation: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false },
+        y: { beginAtZero: true, ticks: { color: '#7d8a9c', font: { size: 10 } }, grid: { color: '#243042' } },
+      },
+    },
+  });
+}
+const charts = {};
+function setupCharts() {
+  if (charts.cpu) return;
+  charts.cpu = lineChart('cpu-chart', 'CPU %',    '#3b82f6');
+  charts.mem = lineChart('mem-chart', 'Memory %', '#a855f7');
+  charts.net = new Chart(document.getElementById('net-chart'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        { label: 'Down kB/s', data: [], borderColor: '#10b981', backgroundColor: '#10b98122', tension: .3, pointRadius: 0, borderWidth: 2, fill: true },
+        { label: 'Up kB/s',   data: [], borderColor: '#f59e0b', backgroundColor: '#f59e0b22', tension: .3, pointRadius: 0, borderWidth: 2, fill: true },
+      ],
+    },
+    options: {
+      responsive: true, animation: false,
+      plugins: { legend: { display: true, labels: { color: '#7d8a9c', font: { size: 10 } } } },
+      scales: { x: { display: false }, y: { beginAtZero: true, ticks: { color: '#7d8a9c', font: { size: 10 } }, grid: { color: '#243042' } } },
+    },
+  });
+}
+function pushPoint(chart, value, label) {
+  const ds = chart.data.datasets[0];
+  chart.data.labels.push(label);
+  ds.data.push(value);
+  if (ds.data.length > MAX_POINTS) { chart.data.labels.shift(); ds.data.shift(); }
+  chart.update();
+}
+function pushNet(downKb, upKb, label) {
+  const c = charts.net;
+  c.data.labels.push(label);
+  c.data.datasets[0].data.push(downKb);
+  c.data.datasets[1].data.push(upKb);
+  if (c.data.labels.length > MAX_POINTS) {
+    c.data.labels.shift();
+    c.data.datasets[0].data.shift();
+    c.data.datasets[1].data.shift();
+  }
+  c.update();
+}
+
+// ── Poll ──────────────────────────────────────────────────────────────────
+const errEl    = document.getElementById('error');
+const statusEl = document.getElementById('status-pill');
+async function poll() {
+  try {
+    const u = cfg.url + (cfg.url.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(cfg.token);
+    const r = await fetch(u, { mode: 'cors' });
+    if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + (await r.text()).slice(0, 80));
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+
+    errEl.style.display = 'none';
+    statusEl.textContent = '● live'; statusEl.style.color = '#10b981';
+    document.getElementById('last-update').textContent = new Date(d.ts).toLocaleTimeString();
+    document.getElementById('server-time').textContent = new Date(d.ts).toLocaleString();
+
+    // CPU
+    document.getElementById('cpu-pct').textContent = d.cpu.percentUsed;
+    document.getElementById('load').textContent    = `${d.cpu.load.load1} / ${d.cpu.load.load5} / ${d.cpu.load.load15}`;
+    const cpuBar = document.getElementById('cpu-bar');
+    cpuBar.style.width = d.cpu.percentUsed + '%'; cpuBar.style.background = barColor(d.cpu.percentUsed);
+
+    // Memory
+    document.getElementById('mem-pct').textContent   = d.memory.percentUsed;
+    document.getElementById('mem-used').textContent  = d.memory.usedMb.toLocaleString();
+    document.getElementById('mem-total').textContent = d.memory.totalMb.toLocaleString();
+    const memBar = document.getElementById('mem-bar');
+    memBar.style.width = d.memory.percentUsed + '%'; memBar.style.background = barColor(d.memory.percentUsed);
+
+    // Disk
+    document.getElementById('disk-pct').textContent   = d.disk.percentUsed;
+    document.getElementById('disk-used').textContent  = d.disk.usedGb;
+    document.getElementById('disk-total').textContent = d.disk.totalGb;
+    document.getElementById('disk-free').textContent  = d.disk.availableGb;
+    const dBar = document.getElementById('disk-bar');
+    dBar.style.width = d.disk.percentUsed + '%'; dBar.style.background = barColor(d.disk.percentUsed);
+
+    // Network
+    const downKb = Math.round(d.network.rxBytesPerSec / 1024 * 10) / 10;
+    const upKb   = Math.round(d.network.txBytesPerSec / 1024 * 10) / 10;
+    document.getElementById('net-down').textContent     = downKb;
+    document.getElementById('net-up').textContent       = upKb;
+    document.getElementById('net-rx-total').textContent = (d.network.rxBytesTotal / 1024 / 1024).toFixed(1);
+    document.getElementById('net-tx-total').textContent = (d.network.txBytesTotal / 1024 / 1024).toFixed(1);
+
+    document.getElementById('uptime').textContent = fmtUptime(d.uptime);
+
+    // Charts
+    const label = new Date(d.ts).toLocaleTimeString();
+    pushPoint(charts.cpu, d.cpu.percentUsed, label);
+    pushPoint(charts.mem, d.memory.percentUsed, label);
+    pushNet(downKb, upKb, label);
+
+    // PM2
+    const rows = (d.pm2 || []).map(p => `
+      <tr>
+        <td><strong>${p.name}</strong></td>
+        <td><span class="dot dot-${p.status === 'online' ? 'online' : 'stopped'}"></span>${p.status}</td>
+        <td>${p.cpu}</td>
+        <td>${p.memoryMb}</td>
+        <td>${p.restarts}</td>
+        <td>${fmtUptime(Math.round(p.uptimeMs / 1000))}</td>
+      </tr>
+    `).join('');
+    document.getElementById('pm2-rows').innerHTML = rows || '<tr><td colspan="6" style="color:var(--mute)">no pm2 data</td></tr>';
+
+    // Git / deploy log
+    if (d.git) {
+      const g    = d.git;
+      const repo = 'https://github.com/rajonu/kothabot-2.0';
+      document.getElementById('git-short').textContent  = g.short || '—';
+      document.getElementById('git-subject').textContent = g.subject || '';
+      document.getElementById('git-branch').textContent  = g.branch || '—';
+      document.getElementById('git-author').textContent  = g.author || '—';
+      document.getElementById('git-date').textContent    = g.date ? new Date(g.date).toLocaleString() : '—';
+      const link = document.getElementById('git-link');
+      if (g.hash) link.href = `${repo}/commit/${g.hash}`;
+
+      const gitRows = (g.recent || []).map(c => `
+        <tr>
+          <td><a href="${repo}/commit/${c.hash}" target="_blank" rel="noopener" style="color:var(--blue); text-decoration:none; font-family:monospace;">${c.hash}</a></td>
+          <td style="white-space:nowrap;">${c.date ? new Date(c.date).toLocaleString() : '—'}</td>
+          <td>${c.author || '—'}</td>
+          <td style="max-width:480px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(c.subject||'').replace(/"/g,'&quot;')}">${c.subject || ''}</td>
+        </tr>
+      `).join('');
+      document.getElementById('git-rows').innerHTML = gitRows || '<tr><td colspan="4" style="color:var(--mute)">no commits</td></tr>';
+    } else {
+      document.getElementById('git-subject').textContent = '(no git info — endpoint could not read repo)';
+    }
+
+  } catch (e) {
+    statusEl.textContent = '● offline'; statusEl.style.color = '#ef4444';
+    errEl.style.display = 'block';
+    errEl.textContent = 'Poll failed: ' + e.message;
+  }
+}
+
+function start() {
+  setupCharts();
+  document.getElementById('interval').textContent = POLL_MS / 1000;
+  poll();
+  setInterval(poll, POLL_MS);
+}
+if (cfg.url && cfg.token) start();
+</script>
+</body>
+</html>

@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KothaBot AI — Full Architecture Blueprint</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Sora:wght@300;400;600;700;800&display=swap');
+
+  :root {
+    --bg: #09110e;
+    --surface: #0f1f18;
+    --surface2: #162b20;
+    --border: #1e3d2c;
+    --accent: #00e676;
+    --accent2: #00bcd4;
+    --accent3: #ffd740;
+    --accent4: #ff6b6b;
+    --text: #e8f5e9;
+    --text-muted: #7a9e88;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Sora', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    background: radial-gradient(ellipse 80% 60% at 50% -10%, #003d1a 0%, transparent 70%),
+                linear-gradient(180deg, #0a1a10 0%, var(--bg) 100%);
+    padding: 60px 40px 40px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 39px,
+      rgba(0,230,118,0.04) 40px
+    ),
+    repeating-linear-gradient(
+      90deg, transparent, transparent 39px,
+      rgba(0,230,118,0.04) 40px
+    );
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(0,230,118,0.1);
+    border: 1px solid rgba(0,230,118,0.3);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+  .hero h1 {
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent) 0%, #69f0ae 50%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+  }
+  .hero p {
+    color: var(--text-muted);
+    font-size: 15px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* ── Layout ── */
+  .container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+
+  /* ── Section Headers ── */
+  .section-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .section-h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    color: var(--text);
+  }
+
+  /* ── Stack Recommendation Box ── */
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+    margin-bottom: 40px;
+  }
+  .stack-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .stack-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .stack-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+  }
+  .stack-card.green::before { background: var(--accent); }
+  .stack-card.blue::before { background: var(--accent2); }
+  .stack-card.yellow::before { background: var(--accent3); }
+  .stack-card.red::before { background: var(--accent4); }
+  .stack-card .layer {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .stack-card.green .layer { color: var(--accent); }
+  .stack-card.blue .layer { color: var(--accent2); }
+  .stack-card.yellow .layer { color: var(--accent3); }
+  .stack-card.red .layer { color: var(--accent4); }
+  .stack-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .stack-card p { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .stack-card .why {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    background: rgba(255,255,255,0.03);
+    border-radius: 6px;
+    padding: 6px 8px;
+  }
+
+  /* ── Architecture Diagram ── */
+  .arch-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 40px;
+    overflow-x: auto;
+  }
+  .arch-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .arch-box {
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--mono);
+    text-align: center;
+    min-width: 110px;
+    white-space: nowrap;
+  }
+  .arch-box.green { background: rgba(0,230,118,0.12); border: 1px solid rgba(0,230,118,0.3); color: var(--accent); }
+  .arch-box.blue { background: rgba(0,188,212,0.12); border: 1px solid rgba(0,188,212,0.3); color: var(--accent2); }
+  .arch-box.yellow { background: rgba(255,215,64,0.12); border: 1px solid rgba(255,215,64,0.3); color: var(--accent3); }
+  .arch-box.red { background: rgba(255,107,107,0.12); border: 1px solid rgba(255,107,107,0.3); color: var(--accent4); }
+  .arch-box.gray { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); }
+  .arch-arrow {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 18px;
+    margin: 4px 0;
+  }
+  .arch-label {
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    margin-top: 4px;
+  }
+  .arch-divider {
+    border: none;
+    border-top: 1px dashed var(--border);
+    margin: 18px 0;
+  }
+
+  /* ── Folder Structure ── */
+  .folder-tree {
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 2;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    overflow-x: auto;
+    margin-bottom: 40px;
+  }
+  .folder-tree .dir { color: var(--accent); font-weight: 700; }
+  .folder-tree .file { color: var(--text-muted); }
+  .folder-tree .comment { color: #3a5e48; font-style: italic; }
+  .folder-tree .highlight { color: var(--accent3); }
+  .folder-tree .page { color: var(--accent2); }
+
+  /* ── Module Cards ── */
+  .module-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  .module-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+  .module-card:hover { border-color: rgba(0,230,118,0.4); }
+  .module-card .icon { font-size: 24px; margin-bottom: 10px; }
+  .module-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+  .module-card ul { list-style: none; }
+  .module-card ul li {
+    font-size: 12px; color: var(--text-muted);
+    padding: 3px 0;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .module-card ul li::before { content: '→'; color: var(--accent); font-size: 10px; }
+
+  /* ── Performance Table ── */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+  th {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--text-muted); text-align: left; padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  td { font-size: 13px; padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text); }
+  tr:hover td { background: rgba(0,230,118,0.03); }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px; border-radius: 20px;
+    font-size: 11px; font-family: var(--mono); font-weight: 600;
+  }
+  .badge-green { background: rgba(0,230,118,0.15); color: var(--accent); }
+  .badge-blue { background: rgba(0,188,212,0.15); color: var(--accent2); }
+  .badge-yellow { background: rgba(255,215,64,0.15); color: var(--accent3); }
+  .badge-red { background: rgba(255,107,107,0.15); color: var(--accent4); }
+
+  /* ── Timeline ── */
+  .timeline { margin-bottom: 40px; }
+  .phase {
+    display: flex; gap: 20px; margin-bottom: 24px;
+    padding-left: 4px;
+  }
+  .phase-num {
+    flex-shrink: 0;
+    width: 36px; height: 36px;
+    background: rgba(0,230,118,0.1);
+    border: 1px solid rgba(0,230,118,0.3);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+    color: var(--accent);
+    margin-top: 2px;
+  }
+  .phase-content h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .phase-content p { font-size: 13px; color: var(--text-muted); }
+  .phase-content ul { list-style: none; margin-top: 8px; }
+  .phase-content ul li {
+    font-size: 12px; color: var(--text-muted);
+    padding: 2px 0; display: flex; align-items: center; gap: 6px;
+  }
+  .phase-content ul li::before { content: '◆'; color: var(--accent); font-size: 8px; }
+  .phase-time {
+    display: inline-block;
+    background: rgba(255,215,64,0.1); border: 1px solid rgba(255,215,64,0.25);
+    color: var(--accent3); font-family: var(--mono); font-size: 11px;
+    padding: 2px 8px; border-radius: 6px; margin-bottom: 6px;
+  }
+
+  /* ── Warning / Tip Boxes ── */
+  .callout {
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .callout.warn { background: rgba(255,215,64,0.07); border: 1px solid rgba(255,215,64,0.2); }
+  .callout.warn .callout-icon { color: var(--accent3); }
+  .callout.info { background: rgba(0,188,212,0.07); border: 1px solid rgba(0,188,212,0.2); }
+  .callout.info .callout-icon { color: var(--accent2); }
+  .callout.danger { background: rgba(255,107,107,0.07); border: 1px solid rgba(255,107,107,0.2); }
+  .callout.danger .callout-icon { color: var(--accent4); }
+  .callout.success { background: rgba(0,230,118,0.07); border: 1px solid rgba(0,230,118,0.2); }
+  .callout.success .callout-icon { color: var(--accent); }
+  .callout strong { font-weight: 700; display: block; margin-bottom: 4px; }
+
+  /* ── DB Schema ── */
+  .schema-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+    margin-bottom: 40px;
+  }
+  .schema-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .schema-header {
+    background: var(--surface2);
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+  }
+  .schema-fields { padding: 12px 14px; }
+  .schema-field {
+    display: flex; justify-content: space-between;
+    font-size: 11px; font-family: var(--mono);
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: var(--text-muted);
+  }
+  .schema-field:last-child { border-bottom: none; }
+  .schema-field .type { color: var(--accent2); }
+  .schema-field .pk { color: var(--accent3); }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    padding: 40px 24px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-family: var(--mono);
+    border-top: 1px solid var(--border);
+    margin-top: 20px;
+  }
+  footer span { color: var(--accent); }
+
+  /* ── Separator ── */
+  .sep { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+
+  @media (max-width: 600px) {
+    .hero { padding: 40px 20px 30px; }
+    .arch-row { gap: 6px; }
+    .arch-box { min-width: 90px; font-size: 10px; padding: 8px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">v2.0 — Complete Rebuild Blueprint</div>
+  <h1>KothaBot AI Architecture</h1>
+  <p>Full-stack pre-SaaS platform — built from scratch for speed, scale & mobile-first UX</p>
+</div>
+
+<div class="container">
+
+  <!-- ════════════════════════════════════ -->
+  <!-- 1. WHY REBUILD -->
+  <!-- ════════════════════════════════════ -->
+  <div class="section-title">01 — Problem Diagnosis</div>
+  <h2 class="section-h2">Why the old app was slow & broken</h2>
+
+  <div class="callout danger">
+    <div class="callout-icon">🔴</div>
+    <div><strong>Route refresh → goes to first page</strong> This is a classic Vercel/SPA issue. There's no <code>vercel.json</code> rewrites config, so all routes 404 and redirect to /. Fix: add <code>{"rewrites": [{"source": "/(.*)", "destination": "/"}]}</code> OR switch to Next.js App Router which handles this natively.</div>
+  </div>
+  <div class="callout danger">
+    <div class="callout-icon">🔴</div>
+    <div><strong>Voice AI slowing down after 1–2 min</strong> Gemini Live API sessions accumulate context/audio buffer. The fix is session chunking: every 90 seconds, summarize and start a new Gemini session with the summary as context. Also: stream audio via WebSocket, don't batch it.</div>
+  </div>
+  <div class="callout warn">
+    <div class="callout-icon">🟡</div>
+    <div><strong>Vercel slowness</strong> Free Vercel has cold starts on serverless functions. Every API call wakes a new instance. Solution: use Next.js Edge Runtime for hot paths + move heavy AI logic to a persistent backend (Railway/Render).</div>
+  </div>
+  <div class="callout warn">
+    <div class="callout-icon">🟡</div>
+    <div><strong>Supabase free tier</strong> Free Supabase pauses after 1 week inactivity and has row limits. For SaaS use Supabase Pro ($25/mo) or keep free but add a keep-alive ping. The schema itself is fine — Supabase + PostgreSQL is the right move from Firebase.</div>
+  </div>
+  <div class="callout info">
+    <div class="callout-icon">🔵</div>
+    <div><strong>Junk/temporary code</strong> Without seeing the actual codebase, common issues in AI-studio-generated apps: unused imports everywhere, no React.memo/useMemo, no code splitting, all routes loaded eagerly, and Gemini API called directly from the browser (exposes your key).</div>
+  </div>
+
+  <hr class="sep">
+
+  <!-- ════════════════════════════════════ -->
+  <!-- 2. RECOMMENDED STACK -->
+  <!-- ════════════════════════════════════ -->
+  <div class="section-title">02 — Tech Stack</div>
+  <h2 class="section-h2">Chosen stack — fast, modern, free-to-start</h2>
+
+  <div class="stack-grid">
+    <div class="stack-card green">
+      <div class="layer">Frontend</div>
+      <h3>Next.js 15 App Router</h3>
+      <p>React 19 + TypeScript. Server Components for fast first load. No SPA routing bugs.</p>
+      <div class="why">✓ Fixes the refresh/routing bug permanently</div>
+    </div>
+    <div class="stack-card green">
+      <div class="layer">Styling</div>
+      <h3>Tailwind CSS v4 + shadcn/ui</h3>
+      <p>Utility-first. shadcn components are copy-pasted, not a dependency. Zero bloat.</p>
+      <div class="why">✓ Mobile-first, dark mode, fast builds</div>
+    </div>
+    <div class="stack-card blue">
+      <div class="layer">Backend</div>
+      <h3>Next.js Route Handlers</h3>
+      <p>API routes in /app/api/. Edge Runtime for voice/AI. Node runtime for webhooks.</p>
+      <div class="why">✓ No separate backend server needed</div>
+    </div>
+    <div class="stack-card blue">
+      <div class="layer">AI / Voice</div>
+      <h3>Gemini 2.0 Flash Live</h3>
+      <p>Gemini Live API via WebSocket. Session chunking every 90s. Server-proxied (key never exposed).</p>
+      <div class="why">✓ Fixes the voice slowdown bug</div>
+    </div>
+    <div class="stack-card yellow">
+      <div class="layer">Database</div>
+      <h3>Supabase (PostgreSQL)</h3>
+      <p>Row-Level Security for multi-tenancy. Realtime subscriptions. Keep on Pro or add keep-alive.</p>
+      <div class="why">✓ Your existing Supabase schema is reusable</div>
+    </div>
+    <div class="stack-card yellow">
+      <div class="layer">Auth</div>
+      <h3>Supabase Auth</h3>
+      <p>Email/password + magic link. JWT stored in httpOnly cookie. Works with RLS.</p>
+      <div class="why">✓ No separate auth service needed</div>
+    </div>
+    <div class="stack-card red">
+      <div class="layer">Hosting</div>
+      <h3>Vercel (configured) OR Railway</h3>
+      <p>Next.js on Vercel with correct vercel.json. Or Railway for a persistent Node server + less cold starts.</p>
+      <div class="why">✓ Free tier works if configured right</div>
+    </div>
+    <div class="stack-card red">
+      <div class="layer">Voice WebSocket</div>
+      <h3>Railway (Node.js WS Server)</h3>
+      <p>Persistent WebSocket server for Gemini Live sessions. Vercel doesn't support persistent WS.</p>
+      <div class="why">✓ Fixes voice latency permanently</div>
+    </div>
+    <div class="stack-card green">
+      <div class="layer">Payments</div>
+      <h3>Paddle + bKash Manual</h3>
+      <p>Keep your current setup. Paddle webhooks → Supabase subscriptions table.</p>
+      <div class="why">✓ No changes needed here</div>
+    </div>
+    <div class="stack-card blue">
+      <div class="layer">Email</div>
+      <h3>Resend (or Zoho SMTP)</h3>
+      <p>Resend has a generous free tier, great SDK, and works perfectly in Next.js route handlers.</p>
+      <div class="why">✓ Replaces Firebase trigger email</div>
+    </div>
+    <div class="stack-card yellow">
+      <div class="layer">File Storage</div>
+      <h3>Supabase Storage</h3>
+      <p>Support ticket screenshots, widget images. Already in your Supabase plan.</p>
+      <div class="why">✓ No extra service needed</div>
+    </div>
+    <div class="stack-card red">
+      <div class="layer">State / Cache</div>
+      <h3>Zustand + TanStack Query</h3>
+      <p>Zustand for UI state. TanStack Query for server state with automatic caching.</p>
+      <div class="why">✓ Eliminates redundant API calls</div>
+    </div>
+  </div>
+
+  <hr class="sep">
+
+  <!-- ════════════════════════════════════ -->
+  <!-- 3. SYSTEM ARCHITECTURE DIAGRAM -->
+  <!-- ════════════════════════════════════ -->
+  <div class="section-title">03 — System Architecture</div>
+  <h2 class="section-h2">How all the pieces connect</h2>
+
+  <div class="arch-diagram">
+    <div class="arch-label">Client Layer</div>
+    <div class="arch-row">
+      <div class="arch-box green">Browser / PWA</div>
+      <div class="arch-box green">Mobile WebView</div>
+      <div class="arch-box green">Embedded Widget</div>
+    </div>
+    <div class="arch-arrow">↓ HTTPS / WSS</div>
+
+    <div class="arch-label">Edge / CDN Layer</div>
+    <div class="arch-row">
+      <div class="arch-box blue">Vercel Edge Network</div>
+      <div class="arch-box blue">Next.js Middleware (Auth Guard)</div>
+    </div>
+    <div class="arch-arrow">↓</div>
+
+    <div class="arch-label">Application Layer (Next.js App Router)</div>
+    <div class="arch-row">
+      <div class="arch-box blue">Server Components (RSC)</div>
+      <div class="arch-box blue">Client Components</div>
+      <div class="arch-box blue">Route Handlers (/api/*)</div>
+    </div>
+    <div class="arch-arrow">↓</div>
+
+    <div class="arch-divider"></div>
+    <div class="arch-label">Persistent Voice Server (Railway Node.js)</div>
+    <div class="arch-row">
+      <div class="arch-box yellow">WebSocket Server</div>
+      <div class="arch-box yellow">Gemini Live Proxy</div>
+      <div class="arch-box yellow">Session Manager</div>
+    </div>
+    <div class="arch-arrow">↓ Google AI SDK</div>
+    <div class="arch-row">
+      <div class="arch-box green">Gemini 2.0 Flash Live</div>
+      <div class="arch-box green">Gemini Text API</div>
+    </div>
+    <div class="arch-divider"></div>
+
+    <div class="arch-label">Data Layer</div>
+    <div class="arch-row">
+      <div class="arch-box yellow">Supabase PostgreSQL</div>
+      <div class="arch-box yellow">Supabase Auth (JWT)</div>
+      <div class="arch-box yellow">Supabase Storage</div>
+      <div class="arch-box yellow">Supabase Realtime</div>
+    </div>
+    <div class="arch-arrow">↓</div>
+
+    <div class="arch-label">External Services</div>
+    <div class="arch-row">
+      <div class="arch-box red">Paddle (Billing)</div>
+      <div class="arch-box red">bKash Manual</div>
+      <div class="arch-box red">Resend (Email)</div>
+      <div class="arch-box gray">WhatsApp Cloud API</div>
+      <div class="arch-box gray">Messenger API</div>
+      <div class="arch-box gray">Telegram Bot API</div>
+    </div>
+  </div>
+
+  <hr class="sep">
+
+  <!-- ════════════════════════════════════ -->
+  <!-- 4. FOLDER STRUCTURE -->
+  <!-- ════════════════════════════════════ -->
+  <div class="section-title">04 — Folder Structure</div>
+  <h2 class="section-h2">Module-based, feature-first organization</h2>
+
+  <div class="folder-tree">
+<span class="dir">kothabot-v2/</span>
+├── <span class="dir">apps/</span>
+│   ├── <span class="dir">web/</span>                        <span class="comment"># Next.js 15 main app</span>
+│   │   ├── <span class="dir">app/</span>                    <span class="comment"># App Router root</span>
+│   │   │   ├── <span class="dir">(auth)/</span>             <span class="comment"># Route group: no layout</span>
+│   │   │   │   ├── <span class="page">login/page.tsx</span>
+│   │   │   │   ├── <span class="page">register/page.tsx</span>
+│   │   │   │   └── <span class="page">onboarding/page.tsx</span>
+│   │   │   ├── <span class="dir">(dashboard)/</span>        <span class="comment"># Protected: has sidebar layout</span>
+│   │   │   │   ├── <span class="file">layout.tsx</span>          <span class="comment"># Sidebar + topbar</span>
+│   │   │   │   ├── <span class="page">dashboard/page.tsx</span>
+│   │   │   │   ├── <span class="page">orders/page.tsx</span>
+│   │   │   │   ├── <span class="page">customers/page.tsx</span>
+│   │   │   │   ├── <span class="page">analytics/page.tsx</span>
+│   │   │   │   ├── <span class="page">billing/page.tsx</span>
+│   │   │   │   ├── <span class="page">integrations/page.tsx</span>
+│   │   │   │   ├── <span class="page">support/page.tsx</span>
+│   │   │   │   ├── <span class="page">settings/page.tsx</span>
+│   │   │   │   └── <span class="page">live-preview/page.tsx</span>
+│   │   │   ├── <span class="dir">(admin)/</span>            <span class="comment"># Master admin "God Mode"</span>
+│   │   │   │   ├── <span class="file">layout.tsx</span>
+│   │   │   │   ├── <span class="page">admin/page.tsx</span>
+│   │   │   │   ├── <span class="page">admin/clients/page.tsx</span>
+│   │   │   │   ├── <span class="page">admin/billing/page.tsx</span>
+│   │   │   │   └── <span class="page">admin/settings/page.tsx</span>
+│   │   │   ├── <span class="dir">api/</span>                <span class="comment"># Route Handlers (backend)</span>
+│   │   │   │   ├── <span class="dir">auth/</span>
+│   │   │   │   ├── <span class="dir">ai/chat/</span>            <span class="comment"># Text AI endpoint</span>
+│   │   │   │   ├── <span class="dir">ai/session/</span>         <span class="comment"># Create/end voice sessions</span>
+│   │   │   │   ├── <span class="dir">webhooks/paddle/</span>
+│   │   │   │   ├── <span class="dir">webhooks/whatsapp/</span>
+│   │   │   │   ├── <span class="dir">webhooks/messenger/</span>
+│   │   │   │   ├── <span class="dir">webhooks/telegram/</span>
+│   │   │   │   ├── <span class="dir">billing/bkash/</span>
+│   │   │   │   └── <span class="dir">training/scrape/</span>    <span class="comment"># Auto-train from URL</span>
+│   │   │   ├── <span class="dir">widget/</span>             <span class="comment"># Public: embeddable widget page</span>
+│   │   │   │   └── <span class="page">[shopId]/page.tsx</span>
+│   │   │   ├── <span class="dir">call/</span>               <span class="comment"># Standalone AI call link</span>
+│   │   │   │   └── <span class="page">[shopId]/page.tsx</span>
+│   │   │   ├── <span class="file">layout.tsx</span>          <span class="comment"># Root layout (fonts, providers)</span>
+│   │   │   └── <span class="file">middleware.ts</span>       <span class="comment"># Auth guard for protected routes</span>
+│   │   ├── <span class="dir">modules/</span>            <span class="comment"># Feature modules (add new features here)</span>
+│   │   │   ├── <span class="dir">auth/</span>               <span class="comment"># Login, register, session hooks</span>
+│   │   │   ├── <span class="dir">voice/</span>              <span class="comment"># Voice AI client, WebSocket hook</span>
+│   │   │   ├── <span class="dir">chat/</span>               <span class="comment"># Text chat UI + API calls</span>
+│   │   │   ├── <span class="dir">orders/</span>
+│   │   │   ├── <span class="dir">customers/</span>
+│   │   │   ├── <span class="dir">analytics/</span>
+│   │   │   ├── <span class="dir">billing/</span>
+│   │   │   ├── <span class="dir">integrations/</span>
+│   │   │   ├── <span class="dir">support/</span>
+│   │   │   ├── <span class="dir">widget/</span>
+│   │   │   └── <span class="dir">admin/</span>
+│   │   ├── <span class="dir">components/</span>         <span class="comment"># Shared UI components</span>
+│   │   │   ├── <span class="dir">ui/</span>                 <span class="comment"># shadcn/ui copies</span>
+│   │   │   ├── <span class="dir">layout/</span>             <span class="comment"># Sidebar, Topbar, MobileNav</span>
+│   │   │   └── <span class="dir">common/</span>             <span class="comment"># Cards, Badges, Loaders</span>
+│   │   ├── <span class="dir">lib/</span>                <span class="comment"># Utilities & config</span>
+│   │   │   ├── <span class="file">supabase/</span>           <span class="comment"># Client + server Supabase instances</span>
+│   │   │   ├── <span class="file">gemini.ts</span>           <span class="comment"># Gemini SDK config</span>
+│   │   │   ├── <span class="file">paddle.ts</span>
+│   │   │   └── <span class="file">utils.ts</span>
+│   │   └── <span class="dir">stores/</span>             <span class="comment"># Zustand stores</span>
+│   │
+│   └── <span class="dir">voice-server/</span>           <span class="comment"># Railway: persistent WS server</span>
+│       ├── <span class="file">index.ts</span>            <span class="comment"># WS server entry point</span>
+│       ├── <span class="dir">sessions/</span>
+│       └── <span class="dir">gemini/</span>
+│
+├── <span class="dir">packages/</span>               <span class="comment"># Shared code (monorepo)</span>
+│   ├── <span class="dir">db/</span>                 <span class="comment"># Supabase types (auto-generated)</span>
+│   └── <span class="dir">config/</span>             <span class="comment"># Shared TS/ESLint config</span>
+│
+├── <span class="file">vercel.json</span>             <span class="highlight">← FIXES THE REFRESH BUG</span>
+├── <span class="file">turbo.json</span>              <span class="comment"># Turborepo config</span>
+└── <span class="file">package.json</span>
+  </div>
+
+  <div class="callout success">
+    <div class="callout-icon">✅</div>
+    <div><strong>vercel.json (critical fix)</strong> Add this to your project root: <code>{"rewrites": [{"source": "/(.*)", "destination": "/"}]}</code> — this alone fixes the refresh-to-homepage bug on the current app without a full rebuild.</div>
+  </div>
+
+  <hr class="sep">
+
+  <!-- ════════════════════════════════════ -->
+  <!-- 5. DATABASE SCHEMA -->
+  <!-- ════════════════════════════════════ -->
+  <div class="section-title">05 — Database Schema</div>
+  <h2 class="section-h2">Supabase PostgreSQL — clean multi-tenant design</h2>
+
+  <div class="schema-grid">
+    <div class="schema-card">
+      <div class="schema-header">shops (tenants)</div>
+      <div class="schema-fields">
+        <div class="schema-field"><span class="pk">id (uuid)</span><span class="type">PK</span></div>
+        <div class="schema-field"><span>owner_id</span><span class="type">uuid → auth.users</span></div>
+        <div class="schema-field"><span>name</span><span class="type">text</span></div>
+        <div class="schema-field"><span>category</span><span class="type">enum</span></div>
+        <div class="schema-field"><span>slug</span><span class="type">text unique</span></div>
+        <div class="schema-field"><span>widget_config</span><span class="type">jsonb</span></div>
+        <div class="schema-field"><span>ai_config</span><span class="type">jsonb</span></div>
+        <div class="schema-field"><span>onboarding_done</span><span class="type">bool</span></div>
+        <div class="schema-field"><span>created_at</span><span class="type">timestamptz</span></div>
+      </div>
+    </div>
+    <div class="schema-card">
+      <div class="schema-header">subscriptions</div>
+      <div class="schema-fields">
+        <div class="schema-field"><span class="pk">id</span><span class="type">PK</span></div>
+        <div class="schema-field"><span>shop_id</span><span class="type">uuid → shops</span></div>
+        <div class="schema-field"><span>plan</span><span class="type">enum(monthly,yearly)</span></div>
+        <div class="schema-field"><span>status</span><span class="type">enum(active,trial...)</span></div>
+        <div class="schema-field"><span>payment_method</span><span class="type">enum(paddle,bkash)</span></div>
+        <div class="schema-field"><span>paddle_sub_id</span><span class="type">text</span></div>
+        <div class="schema-field"><span>trial_ends_at</span><span class="type">timestamptz</span></div>
+        <div class="schema-field"><span>current_period_end</span><span class="type">timestamptz</span></div>
+      </div>
+    </div>
+    <div class="schema-card">
+      <div class="schema-header">voice_sessions</div>
+      <div class="schema-fields">
+        <div class="schema-field"><span class="pk">id</span><span class="type">PK</span></div>
+        <div class="schema-field"><span>shop_id</span><span class="type">uuid → shops</span></div>
+        <div class="schema-field"><span>session_token</span><span class="type">text</span></div>
+        <div class="schema-field"><span>status</span><span class="type">enum</span></div>
+        <div class="schema-field"><span>duration_s</span><span class="type">int</span></div>
+        <div class="schema-field"><span>caller_ip</span><span class="type">inet</span></div>
+        <div class="schema-field"><span>transcript</span><span class="type">jsonb[]</span></div>
+        <div class="schema-field"><span>summary</span><span class="type">text</span></div>
+        <div class="schema-field"><span>created_at</span><span class="type">timestamptz</span></div>
+      </div>
+    </div>
+    <div class="schema-card">
+      <div class="schema-header">orders</div>
+      <div class="schema-fields">
+        <div class="schema-field"><span class="pk">id</span><span class="type">PK</span></div>
+        <div class="schema-field"><span>shop_id</span><span class="type">uuid → shops</span></div>
+        <div class="schema-field"><span>customer_id</span><span class="type">uuid → customers</span></div>
+        <div class="schema-field"><span>type</span><span class="type">enum(order,appt,lead)</span></div>
+        <div class="schema-field"><span>items</span><span class="type">jsonb</span></div>
+        <div class="schema-field"><span>status</span><span class="type">enum</span></div>
+        <div class="schema-field"><span>total_amount</span><span class="type">numeric</span></div>
+        <div class="schema-field"><span>session_id</span><span class="type">uuid → voice_sessions</span></div>
+        <div class="schema-field"><span>created_at</span><span class="type">timestamptz</span></div>
+      </div>
+    </div>
+    <div class="schema-card">
+      <div class="schema-header">customers</div>
+      <div class="schema-fields">
+        <div class="schema-field"><span class="pk">id</span><span class="type">PK</span></div>
+        <div class="schema-field"><span>shop_id</span><span class="type">uuid → shops</span></div>
+        <div class="schema-field"><span>name</span><span class="type">text</span></div>
+        <div class="schema-field"><span>phone</span><span class="type">text</span></div>
+        <div class="schema-field"><span>address</span><span class="type">text</span></div>
+        <div class="schema-field"><span>lifetime_value</span><span class="type">numeric</span></div>
+        <div class="schema-field"><span>order_count</span><span class="type">int</span></div>
+        <div class="schema-field"><span>demographics</span><span class="type">jsonb</span></div>
+        <div class="schema-field"><span>created_at</span><span class="type">timestamptz</span></div>
+      </div>
+    </div>
+    <div class="schema-card">
+      <div class="schema-header">support_tickets</div>
+      <div class="schema-fields">
+        <div class="schema-field"><span class="pk">id</span><span class="type">PK</span></div>
+        <div class="schema-field"><span>shop_id</span><span class="type">uuid → shops</span></div>
+        <div class="schema-field"><span>subject</span><span class="type">text</span></div>
+        <div class="schema-field"><span>status</span><span class="type">enum(open,pending,done)</span></div>
+        <div class="schema-field"><span>messages</span><span class="type">jsonb[]</span></div>
+        <div class="schema-field"><span>screenshot_url</span><span class="type">text</span></div>
+        <div class="schema-field"><span>unread_admin</span><span class="type">bool</span></div>
+        <div class="schema-field"><span>unread_client</span><span class="type">bool</span></div>
+      </div>
+    </div>
+    <div class="schema-card">
+      <div class="schema-header">training_data</div>
+      <div class="schema-fields">
+        <div class="schema-field"><span class="pk">id</span><span class="type">PK</span></div>
+        <div class="schema-field"><span>shop_id</span><span class="type">uuid → shops</span></div>
+        <div class="schema-field"><span>source_type</span><span class="type">enum(website,fb,manual)</span></div>
+        <div class="schema-field"><span>source_url</span><span class="type">text</span></div>
+        <div class="schema-field"><span>extracted_text</span><span class="type">text</span></div>
+        <div class="schema-field"><span>vector_embedding</span><span class="type">vector(1536)</span></div>
+        <div class="schema-field"><span>last_scraped_at</span><span class="type">timestamptz</span></div>
+      </div>
+    </div>
+    <div class="schema-card">
+      <div class="schema-header">invoices</div>
+      <div class="schema-fields">
+        <div class="schema-field"><span class="pk">id</span><span class="type">PK</span></div>
+        <div class="schema-field"><span>shop_id</span><span class="type">uuid → shops</span></div>
+        <div class="schema-field"><span>amount</span><span class="type">numeric</span></div>
+        <div class="schema-field"><span>currency</span><span class="type">text(BDT/USD)</span></div>
+        <div class="schema-field"><span>status</span><span class="type">enum(paid,pending,rejected)</span></div>
+        <div class="schema-field"><span>paddle_tx_id</span><span class="type">text</span></div>
+        <div class="schema-field"><span>bkash_tx_id</span><span class="type">text</span></div>
+        <div class="schema-field"><span>bkash_last4</span><span class="type">text</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-icon">🔵</div>
+    <div><strong>Row Level Security (RLS)</strong> Every table gets: <code>USING (shop_id = auth.uid())</code> — this makes the multi-tenancy secure at the database level. No one can read another shop's data even if they hit the API directly.</div>
+  </div>
+
+  <hr class="sep">
+
+  <!-- ════════════════════════════════════ -->
+  <!-- 6. VOICE FIX DETAIL -->
+  <!-- ════════════════════════════════════ -->
+  <div class="section-title">06 — Voice AI Fix</div>
+  <h2 class="section-h2">How to fix the slowdown after 1–2 minutes</h2>
+
+  <table>
+    <thead>
+      <tr><th>Problem</th><th>Root Cause</th><th>Fix</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Slow after 1–2 min</td><td>Gemini context grows unboundedly — more tokens = more latency</td><td class="badge badge-green">Session chunking every 90s</td></tr>
+      <tr><td>Audio delay</td><td>Batching audio instead of streaming</td><td class="badge badge-green">WebSocket streaming, 250ms chunks</td></tr>
+      <tr><td>Cold starts</td><td>Vercel serverless wakes per request</td><td class="badge badge-blue">Persistent Railway WS server</td></tr>
+      <tr><td>Key exposed</td><td>Gemini called from browser</td><td class="badge badge-green">Server-side proxy only</td></tr>
+      <tr><td>No reconnect</td><td>No session recovery logic</td><td class="badge badge-blue">Redis session state OR Supabase row</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout success">
+    <div class="callout-icon">💡</div>
+    <div><strong>Session Chunking Algorithm</strong><br>
+      1. Start Gemini Live session with system prompt + business context<br>
+      2. Every 90 seconds OR when transcript hits ~4000 tokens: call Gemini to generate a 200-word summary<br>
+      3. Start a NEW Gemini session with: system prompt + summary as context<br>
+      4. User never notices — conversation continues seamlessly<br>
+      This keeps each Gemini session small and fast forever.
+    </div>
+  </div>
+
+  <hr class="sep">
+
+  <!-- ════════════════════════════════════ -->
+  <!-- 7. MODULES BREAKDOWN -->
+  <!-- ════════════════════════════════════ -->
+  <div class="section-title">07 — Feature Modules</div>
+  <h2 class="section-h2">Each module is self-contained and independently addable</h2>
+
+  <div class="module-grid">
+    <div class="module-card">
+      <div class="icon">🎙️</div>
+      <h3>Voice Module</h3>
+      <ul>
+        <li>WebSocket client hook (useVoiceSession)</li>
+        <li>Audio recorder (MediaRecorder API)</li>
+        <li>Session chunking logic</li>
+        <li>Reconnect handler</li>
+        <li>Inactivity timeout (60s)</li>
+        <li>Floating call button widget</li>
+      </ul>
+    </div>
+    <div class="module-card">
+      <div class="icon">💬</div>
+      <h3>Chat Module</h3>
+      <ul>
+        <li>Text chat UI component</li>
+        <li>Streaming response (SSE)</li>
+        <li>Language auto-detect</li>
+        <li>Bangla + English</li>
+        <li>Embed widget build</li>
+      </ul>
+    </div>
+    <div class="module-card">
+      <div class="icon">📦</div>
+      <h3>Orders Module</h3>
+      <ul>
+        <li>Order list (filterable)</li>
+        <li>Order detail view</li>
+        <li>Status update actions</li>
+        <li>AI-created orders display</li>
+        <li>Export to CSV</li>
+      </ul>
+    </div>
+    <div class="module-card">
+      <div class="icon">👥</div>
+      <h3>Customers Module</h3>
+      <ul>
+        <li>Customer list + search</li>
+        <li>Customer profile page</li>
+        <li>Lifetime value tracking</li>
+        <li>Call history per customer</li>
+      </ul>
+    </div>
+    <div class="module-card">
+      <div class="icon">📊</div>
+      <h3>Analytics Module</h3>
+      <ul>
+        <li>Dashboard overview cards</li>
+        <li>Call duration chart (Recharts)</li>
+        <li>Peak hours heatmap</li>
+        <li>ROI calculator</li>
+        <li>Category-specific metrics</li>
+      </ul>
+    </div>
+    <div class="module-card">
+      <div class="icon">💳</div>
+      <h3>Billing Module</h3>
+      <ul>
+        <li>Plan selector UI</li>
+        <li>Paddle checkout integration</li>
+        <li>bKash manual payment form</li>
+        <li>Invoice list</li>
+        <li>Subscription status</li>
+      </ul>
+    </div>
+    <div class="module-card">
+      <div class="icon">🔗</div>
+      <h3>Integrations Module</h3>
+      <ul>
+        <li>WhatsApp token setup</li>
+        <li>Messenger app ID setup</li>
+        <li>Telegram bot token</li>
+        <li>Google Sheets sync</li>
+        <li>Webhook URL config</li>
+      </ul>
+    </div>
+    <div class="module-card">
+      <div class="icon">🎨</div>
+      <h3>Widget Module</h3>
+      <ul>
+        <li>Widget configurator UI</li>
+        <li>Live preview (iframe)</li>
+        <li>Embed code generator</li>
+        <li>Color, position, CTA settings</li>
+        <li>Social button toggles</li>
+      </ul>
+    </div>
+    <div class="module-card">
+      <div class="icon">🧠</div>
+      <h3>AI Training Module</h3>
+      <ul>
+        <li>URL scraper (Cheerio)</li>
+        <li>Knowledge base editor</li>
+        <li>FAQ manager</li>
+        <li>Custom instructions editor</li>
+        <li>Training status tracker</li>
+      </ul>
+    </div>
+    <div class="module-card">
+      <div class="icon">🎫</div>
+      <h3>Support Module</h3>
+      <ul>
+        <li>Ticket create form</li>
+        <li>Ticket thread view</li>
+        <li>Screenshot upload</li>
+        <li>Unread badge system</li>
+        <li>Realtime updates</li>
+      </ul>
+    </div>
+    <div class="module-card">
+      <div class="icon">👑</div>
+      <h3>Admin Module</h3>
+      <ul>
+        <li>All clients list</li>
+        <li>Subscription management</li>
+        <li>bKash approval flow</li>
+        <li>Global AI rules editor</li>
+        <li>SMTP / email config</li>
+        <li>System health metrics</li>
+      </ul>
+    </div>
+    <div class="module-card">
+      <div class="icon">🔒</div>
+      <h3>Auth Module</h3>
+      <ul>
+        <li>Registration wizard (4 steps)</li>
+        <li>Email verify</li>
+        <li>Login + magic link</li>
+        <li>Onboarding wizard</li>
+        <li>Middleware route guard</li>
+      </ul>
+    </div>
+  </div>
+
+  <hr class="sep">
+
+  <!-- ════════════════════════════════════ -->
+  <!-- 8. BUILD PLAN -->
+  <!-- ════════════════════════════════════ -->
+  <div class="section-title">08 — Build Plan</div>
+  <h2 class="section-h2">How we build together — phase by phase</h2>
+
+  <div class="timeline">
+    <div class="phase">
+      <div class="phase-num">1</div>
+      <div class="phase-content">
+        <div class="phase-time">Week 1 — Foundation</div>
+        <h3>Project setup + Auth + Routing</h3>
+        <ul>
+          <li>Create Next.js 15 app with TypeScript + Tailwind v4</li>
+          <li>Set up Supabase project + run schema migrations</li>
+          <li>Build auth module: login, register, onboarding wizard</li>
+          <li>Build middleware.ts for protected routes</li>
+          <li>Build dashboard layout: sidebar + topbar + mobile nav</li>
+          <li>Add vercel.json to fix routing bug immediately</li>
+        </ul>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">2</div>
+      <div class="phase-content">
+        <div class="phase-time">Week 2 — Core Dashboard</div>
+        <h3>Dashboard + Orders + Customers</h3>
+        <ul>
+          <li>Analytics overview page (static cards first)</li>
+          <li>Orders list + detail page</li>
+          <li>Customers list + profile page</li>
+          <li>Settings page (bot config, widget config)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">3</div>
+      <div class="phase-content">
+        <div class="phase-time">Week 3 — Voice AI (most important)</div>
+        <h3>Voice server + WebSocket + Session chunking</h3>
+        <ul>
+          <li>Build Railway voice-server (Node.js + ws library)</li>
+          <li>Gemini Live API proxy with session chunking</li>
+          <li>Frontend useVoiceSession hook</li>
+          <li>Floating call button widget</li>
+          <li>Session transcript saving to Supabase</li>
+        </ul>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">4</div>
+      <div class="phase-content">
+        <div class="phase-time">Week 4 — Widget + Chat + Embed</div>
+        <h3>Embeddable widget system</h3>
+        <ul>
+          <li>Widget configurator page</li>
+          <li>Text chat component with Gemini streaming</li>
+          <li>Public widget page (/widget/[shopId])</li>
+          <li>Embed code generator</li>
+          <li>Standalone AI call link (/call/[shopId])</li>
+        </ul>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">5</div>
+      <div class="phase-content">
+        <div class="phase-time">Week 5 — Billing + Admin</div>
+        <h3>Subscriptions + God Mode</h3>
+        <ul>
+          <li>Paddle checkout integration</li>
+          <li>bKash manual payment flow</li>
+          <li>Paddle webhook handler</li>
+          <li>Master admin dashboard</li>
+          <li>bKash approval UI for admin</li>
+        </ul>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">6</div>
+      <div class="phase-content">
+        <div class="phase-time">Week 6 — Integrations + Launch</div>
+        <h3>Social chat + Training + Polish</h3>
+        <ul>
+          <li>WhatsApp / Messenger / Telegram webhooks</li>
+          <li>AI training from URL scraper</li>
+          <li>Support ticket system</li>
+          <li>Email system with Resend</li>
+          <li>PWA manifest + mobile optimization</li>
+          <li>Performance audit + deploy</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <hr class="sep">
+
+  <!-- ════════════════════════════════════ -->
+  <!-- 9. PERFORMANCE DECISIONS -->
+  <!-- ════════════════════════════════════ -->
+  <div class="section-title">09 — Performance</div>
+  <h2 class="section-h2">Speed decisions baked into architecture</h2>
+
+  <table>
+    <thead>
+      <tr><th>Concern</th><th>Solution</th><th>Impact</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Page load speed</td><td>Next.js RSC — HTML served from CDN edge</td><td><span class="badge badge-green">~200ms TTFB</span></td></tr>
+      <tr><td>Bundle size</td><td>Code splitting per route (automatic in Next.js)</td><td><span class="badge badge-green">~60% smaller bundles</span></td></tr>
+      <tr><td>API calls</td><td>TanStack Query caching + stale-while-revalidate</td><td><span class="badge badge-blue">No duplicate requests</span></td></tr>
+      <tr><td>DB queries</td><td>Supabase indexes on shop_id, created_at</td><td><span class="badge badge-green">Fast multi-tenant queries</span></td></tr>
+      <tr><td>Voice latency</td><td>Persistent WS server + session chunking</td><td><span class="badge badge-green">Consistent &lt;500ms</span></td></tr>
+      <tr><td>Images</td><td>Next.js Image component (WebP, lazy load)</td><td><span class="badge badge-blue">Auto-optimized</span></td></tr>
+      <tr><td>Mobile performance</td><td>Mobile-first CSS, no JS on first paint (RSC)</td><td><span class="badge badge-green">Smooth on mid-range phones</span></td></tr>
+      <tr><td>Supabase free pause</td><td>Vercel cron: ping Supabase every 5 days</td><td><span class="badge badge-yellow">Always awake</span></td></tr>
+    </tbody>
+  </table>
+
+  <hr class="sep">
+
+  <!-- ════════════════════════════════════ -->
+  <!-- 10. DECISION: REBUILD vs PATCH -->
+  <!-- ════════════════════════════════════ -->
+  <div class="section-title">10 — Final Recommendation</div>
+  <h2 class="section-h2">Rebuild from scratch — here's why</h2>
+
+  <div class="callout success">
+    <div class="callout-icon">✅</div>
+    <div>
+      <strong>Rebuild is the right call</strong>
+      The old app has 4 fundamental architectural problems (routing, voice, cold starts, security) that can't be fixed by patching — they require structural changes. Since you're already on Supabase and Gemini, the rebuild reuses your data model and AI logic. With Next.js App Router + the module structure above, you get a clean, scalable codebase where new features are just new folders.
+    </div>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-icon">🔵</div>
+    <div>
+      <strong>What we build together, step by step</strong>
+      Share your GitHub repo link or just say "let's start Phase 1" and I'll write the actual code for each module — starting with project setup, Supabase schema SQL, auth pages, and the dashboard layout. Each step will be a complete, working, copy-paste-ready file.
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  KothaBot AI v2.0 — Architecture Blueprint &nbsp;|&nbsp;
+  Built for <span>Raj</span> &nbsp;|&nbsp;
+  <span>Next.js + Supabase + Gemini + Railway</span>
+</footer>
+
+</body>
+</html>

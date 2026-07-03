@@ -1,0 +1,7 @@
+-- Add usage tracking to subscriptions table
+ALTER TABLE public.subscriptions
+  ADD COLUMN IF NOT EXISTS calls_used     INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS minutes_used   INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS extra_calls    INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS extra_minutes  INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS last_reset_at  TIMESTAMPTZ DEFAULT now();

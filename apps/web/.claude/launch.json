@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kothabot-web",
+      "runtimeExecutable": "/opt/homebrew/bin/node",
+      "runtimeArgs": ["/Users/rajrio/Desktop/dev/Claude-project/Kothabot-2.0/apps/web/node_modules/.bin/next", "dev", "--turbopack"],
+      "port": 3000
+    }
+  ]
+}
